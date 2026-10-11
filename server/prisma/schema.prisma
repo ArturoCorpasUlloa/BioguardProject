@@ -1,0 +1,440 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  active      Boolean  @default(true)
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          Int              @id @default(autoincrement())
+  key         String           @unique
+  module      String
+  action      String
+  description String?
+  roles       RolePermission[]
+
+  @@index([module])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       Int        @map("role_id")
+  permissionId Int        @map("permission_id")
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  roleId       Int      @map("role_id")
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  active       Boolean  @default(true)
+  lastLoginAt  DateTime? @map("last_login_at")
+  sessionVersion Int     @default(0) @map("session_version")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  role                  Role                   @relation(fields: [roleId], references: [id])
+  maintenances          Maintenance[]          @relation("TechnicianMaintenances")
+  maintenanceDocuments  MaintenanceDocument[]
+  uploadedDocuments     EquipmentDocument[]   @relation("UploadedEquipmentDocuments")
+  incidentsReported     Incident[]             @relation("ReportedIncidents")
+  incidentsAssigned     Incident[]             @relation("AssignedIncidents")
+  schedules             MaintenanceSchedule[]
+  blocks                Block[]
+  notifications         Notification[]
+  auditLogs             AuditLog[]
+
+  @@map("users")
+}
+
+model Area {
+  id          Int        @id @default(autoincrement())
+  name        String
+  code        String?
+  location    String?
+  responsible String?
+  active      Boolean    @default(true)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  equipment   Equipment[]
+
+  @@map("areas")
+}
+
+model Equipment {
+  id                  Int       @id @default(autoincrement())
+  name                String
+  brand               String
+  model               String?
+  serialNumber        String    @unique @map("serial_number")
+  inventoryCode       String?   @unique @map("inventory_code")
+  areaId              Int?      @map("area_id")
+  location            String?
+  status              String    @default("ACTIVE")
+  riskClassification  String?   @map("risk_classification")
+  manufacturer        String?
+  importer            String?
+  manufacturingYear   Int?      @map("manufacturing_year")
+  acquisitionDate     DateTime? @map("acquisition_date")
+  provider            String?
+  warrantyExpiration  DateTime? @map("warranty_expiration")
+  technicalResponsible String? @map("technical_responsible")
+  maintenanceFrequency String? @map("maintenance_frequency")
+  installationDate    DateTime? @map("installation_date")
+  usefulLifeYears     Int?      @map("useful_life_years")
+  equipmentType       String?   @map("equipment_type")
+  technology          String?
+  powerSupply         String?   @map("power_supply")
+  voltage             String?
+  power               String?
+  invimaRegistration  String?   @map("invima_registration")
+  invimaExpiration    DateTime? @map("invima_expiration")
+  photoPath           String?   @map("photo_path")
+  observations        String?
+  modality            String?
+  providerPhone       String?   @map("provider_phone")
+  providerEmail       String?   @map("provider_email")
+  providerContactPerson String? @map("provider_contact_person")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  area                Area?                 @relation(fields: [areaId], references: [id])
+  documents           EquipmentDocument[]
+  contracts           Contract[]
+  licenses            License[]
+  calibrations        Calibration[]
+  qualityControls     QualityControl[]
+  maintenances        Maintenance[]
+  incidents           Incident[]
+  schedules           MaintenanceSchedule[]
+  dicomConfig         DicomConfig?
+  blocks              Block[]
+
+  @@index([name])
+  @@index([brand])
+  @@index([areaId])
+  @@map("equipment")
+}
+
+model EquipmentDocument {
+  id             Int       @id @default(autoincrement())
+  equipmentId    Int       @map("equipment_id")
+  documentType   String    @default("OTHER") @map("document_type")
+  fileName       String    @map("file_name")
+  filePath       String    @map("file_path")
+  mimeType       String?   @map("mime_type")
+  fileSize       BigInt?   @map("file_size")
+  uploadedById   Int?      @map("uploaded_by")
+  uploadedAt     DateTime  @default(now()) @map("uploaded_at")
+  expirationDate DateTime? @map("expiration_date")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  equipment  Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  uploadedBy User?     @relation("UploadedEquipmentDocuments", fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([equipmentId])
+  @@index([documentType])
+  @@index([expirationDate])
+  @@map("equipment_documents")
+}
+
+model Contract {
+  id                 Int       @id @default(autoincrement())
+  equipmentId        Int       @map("equipment_id")
+  contractNumber     String?   @map("contract_number")
+  company            String
+  contractType       String?   @map("contract_type")
+  startDate          DateTime? @map("start_date")
+  endDate            DateTime? @map("end_date")
+  automaticRenewal   Boolean?  @map("automatic_renewal")
+  withParts          Boolean?  @map("with_parts")
+  cost               Float?    @map("cost")
+  coverage           String?
+  observations       String?
+  documentPath       String?   @map("document_path")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@map("contracts")
+}
+
+model License {
+  id                 Int       @id @default(autoincrement())
+  equipmentId        Int       @map("equipment_id")
+  licenseType        String?   @map("license_type")
+  registrationNumber String?   @map("registration_number")
+  initialDate        DateTime? @map("initial_date")
+  issueDate          DateTime? @map("issue_date")
+  tramitDate         DateTime? @map("tramit_date")
+  expirationDate     DateTime? @map("expiration_date")
+  documentPath       String?   @map("document_path")
+  observations       String?
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@index([expirationDate])
+  @@map("licenses")
+}
+
+model Calibration {
+  id                   Int    @id @default(autoincrement())
+  equipmentId          Int    @map("equipment_id")
+  lastCalibrationDate  DateTime? @map("last_calibration_date")
+  nextCalibrationDate  DateTime? @map("next_calibration_date")
+  result               String?
+  company              String?
+  responsible          String?
+  certificateNumber    String?   @map("certificate_number")
+  documentPath         String?   @map("document_path")
+  observations         String?
+  createdAt            DateTime  @default(now()) @map("created_at")
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@index([nextCalibrationDate])
+  @@map("calibrations")
+}
+
+model QualityControl {
+  id               Int    @id @default(autoincrement())
+  equipmentId      Int    @map("equipment_id")
+  controlDate      DateTime  @map("control_date")
+  nextControlDate  DateTime? @map("next_control_date")
+  result           String?
+  responsible      String?
+  cost             Float?    @map("cost")
+  observations     String?
+  documentPath     String?   @map("document_path")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@map("quality_controls")
+}
+
+model Maintenance {
+  id                   Int    @id @default(autoincrement())
+  equipmentId          Int    @map("equipment_id")
+  type                 String
+  status               String    @default("SCHEDULED")
+  scheduledDate        DateTime? @map("scheduled_date")
+  executionDate        DateTime? @map("execution_date")
+  technicianId         Int?   @map("technician_id")
+  responsible           String?
+  company              String?
+  description          String?   @db.NVarChar(Max)
+  workPerformed        String?   @db.NVarChar(Max) @map("work_performed")
+  spareParts           String?   @db.NVarChar(Max) @map("spare_parts")
+  cost                 Float?
+  nextMaintenanceDate  DateTime? @map("next_maintenance_date")
+  observations         String?   @db.NVarChar(Max)
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  equipment Equipment             @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  technician User?                @relation("TechnicianMaintenances", fields: [technicianId], references: [id])
+  documents  MaintenanceDocument[]
+
+  @@index([equipmentId])
+  @@index([scheduledDate])
+  @@map("maintenance")
+}
+
+model MaintenanceDocument {
+  id            Int   @id @default(autoincrement())
+  maintenanceId Int   @map("maintenance_id")
+  fileName      String   @map("file_name")
+  filePath      String   @map("file_path")
+  mimeType      String?  @map("mime_type")
+  fileSize      Int?  @map("file_size")
+  uploadedById  Int?  @map("uploaded_by")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  maintenance Maintenance @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
+  uploadedBy  User?       @relation(fields: [uploadedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("maintenance_documents")
+}
+
+model Incident {
+  id           Int       @id @default(autoincrement())
+  equipmentId  Int       @map("equipment_id")
+  reportedById Int?      @map("reported_by")
+  reporterName String?   @map("reporter_name")
+  assignedToId Int?      @map("assigned_to")
+  reportNumber String?   @map("report_number")
+  reportedAt   DateTime  @default(now()) @map("reported_at")
+  priority     String    @default("MEDIUM")
+  status       String    @default("REPORTED")
+  description  String?
+  solution     String?
+  resolvedAt   DateTime? @map("resolved_at")
+  observations String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  equipment  Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  reportedBy User?     @relation("ReportedIncidents", fields: [reportedById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  assignedTo User?     @relation("AssignedIncidents", fields: [assignedToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([equipmentId])
+  @@index([status])
+  @@map("incidents")
+}
+
+model MaintenanceSchedule {
+  id              Int   @id @default(autoincrement())
+  equipmentId     Int   @map("equipment_id")
+  maintenanceType String   @map("maintenance_type")
+  scheduledDate   DateTime @map("scheduled_date")
+  status          String   @default("SCHEDULED")
+  rescheduledDate DateTime? @map("rescheduled_date")
+  changeJustification String? @map("change_justification")
+  responsibleId   Int?  @map("responsible_id")
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  equipment   Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  responsible User?     @relation(fields: [responsibleId], references: [id])
+
+  @@map("maintenance_schedule")
+}
+
+model DicomConfig {
+  id                Int      @id @default(autoincrement())
+  equipmentId       Int      @unique @map("equipment_id")
+  aeTitle           String?  @map("ae_title")
+  risAeTitle        String?  @map("ris_ae_title")
+  pacsAeTitle       String?  @map("pacs_ae_title")
+  ipAddress         String?  @map("ip_address")
+  risIpAddress      String?  @map("ris_ip_address")
+  pacsIpAddress     String?  @map("pacs_ip_address")
+  port              Int?
+  risPort           Int?     @map("ris_port")
+  pacsPort          Int?     @map("pacs_port")
+  anidesk           String?
+  username          String?
+  encryptedPassword String?  @map("encrypted_password")
+  observations      String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@map("dicom_configs")
+}
+
+model Block {
+  id          Int   @id @default(autoincrement())
+  equipmentId Int   @map("equipment_id")
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  reason      String
+  status      String   @default("SCHEDULED")
+  createdById Int?  @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  createdBy User?     @relation(fields: [createdById], references: [id])
+
+  @@map("blocks")
+}
+
+model Notification {
+  id            Int    @id @default(autoincrement())
+  userId        Int?   @map("user_id")
+  type          String
+  title         String
+  message       String
+  referenceType String?   @map("reference_type")
+  referenceId   Int?   @map("reference_id")
+  readAt        DateTime? @map("read_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        Int   @id @default(autoincrement())
+  userId    Int?  @map("user_id")
+  action    String
+  entity    String
+  entityId  Int?  @map("entity_id")
+  oldData   String?  @db.NVarChar(Max) @map("old_data")
+  newData   String?  @db.NVarChar(Max) @map("new_data")
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model InvoiceAudit {
+  id                 Int                 @id @default(autoincrement())
+  period             String
+  company            String
+  equipmentId        Int?                @map("equipment_id")
+  service            String?
+  invoiceNumber      String?             @map("invoice_number")
+  invoiceDate        DateTime?           @map("invoice_date")
+  fixedMonthlyCost   Float               @map("fixed_monthly_cost")
+  additionalTotal    Float               @default(0) @map("additional_total")
+  expectedValue      Float               @map("expected_value")
+  invoicedValue      Float               @map("invoiced_value")
+  difference         Float
+  variationPercent   Float               @map("variation_percent")
+  status             String              @default("REVIEWED")
+  comment            String?
+  thresholdPercent   Float               @default(10) @map("threshold_percent")
+  recurrenceKey      String?             @map("recurrence_key")
+  recurrenceMonths   Int?                @map("recurrence_months")
+  recurrenceIndex    Int?                @map("recurrence_index")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  items              InvoiceAuditItem[]
+
+  @@index([period])
+  @@index([status])
+  @@map("invoice_audits")
+}
+
+model InvoiceAuditItem {
+  id          Int         @id @default(autoincrement())
+  auditId     Int         @map("audit_id")
+  concept     String
+  amount      Float
+  createdAt   DateTime    @default(now()) @map("created_at")
+  audit       InvoiceAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  @@index([auditId])
+  @@map("invoice_audit_items")
+}

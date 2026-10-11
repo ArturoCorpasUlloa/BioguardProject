@@ -1,0 +1,199 @@
+.shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: #0f172a;
+  color: white;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.themeButton {
+  margin-left: auto;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+}
+
+.themeButton:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #14b8a6, #0ea5e9);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.brand strong {
+  display: block;
+}
+
+.brand span {
+  display: block;
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  color: #cbd5e1;
+}
+
+.navLink:hover,
+.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.userBox {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.userBox span {
+  display: block;
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.logout {
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+}
+
+.main {
+  min-width: 0;
+}
+
+.topbar {
+  display: none;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar span {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.sqlExportButton {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  background: rgba(20, 184, 166, 0.18);
+  color: #d9fffa;
+  font-weight: 600;
+  text-align: left;
+}
+
+.sqlExportButton:hover {
+  background: rgba(20, 184, 166, 0.3);
+}
+
+.sqlExportButton:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.menuBtn,
+.closeMobile {
+  border: none;
+  background: var(--surface-muted);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+}
+
+.topbar .themeButton {
+  color: var(--text);
+  border-color: var(--border);
+  background: var(--surface-muted);
+}
+
+.closeMobile {
+  display: none;
+  margin-left: auto;
+}
+
+.content {
+  padding: 1.5rem;
+}
+
+@media (max-width: 960px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 280px;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 20;
+  }
+
+  .open {
+    transform: translateX(0);
+  }
+
+  .topbar {
+    display: flex;
+  }
+
+  .closeMobile {
+    display: grid;
+  }
+}

@@ -35,8 +35,12 @@ if not exist server\.env (
 if not exist "%LOCALAPPDATA%\BioGuard" mkdir "%LOCALAPPDATA%\BioGuard"
 
 echo.
-echo Configurando base de datos SQL Server...
-call npm run setup
+echo Configurando PostgreSQL...
+call docker compose up -d postgres
+if errorlevel 1 goto error
+call npm run db:deploy
+if errorlevel 1 goto error
+call npm run db:seed
 if errorlevel 1 goto error
 
 echo.

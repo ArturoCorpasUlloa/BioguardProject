@@ -4,7 +4,10 @@ const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
 
 function getKey() {
-  const secret = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET || 'default-dev-key-change-me';
+  const secret = process.env.ENCRYPTION_KEY;
+  if (!secret) {
+    throw new Error('ENCRYPTION_KEY no está configurada');
+  }
   return crypto.createHash('sha256').update(secret).digest();
 }
 

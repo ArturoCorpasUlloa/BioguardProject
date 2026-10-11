@@ -4,7 +4,6 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import authRoutes from './routes/authRoutes.js';
 import areaRoutes from './routes/areaRoutes.js';
 import equipmentRoutes from './routes/equipmentRoutes.js';
@@ -16,9 +15,6 @@ import { errorHandler } from './middlewares/auth.js';
 import { uploadDir } from './utils/uploads.js';
 
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -60,14 +56,6 @@ app.use('/api/equipment', equipmentRoutes);
 app.use('/api', operationsRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/invoice-audits', invoiceAuditRoutes);
-
-if (process.env.NODE_ENV === 'production') {
-  const clientDist = path.resolve(__dirname, '../../client/dist');
-  app.use(express.static(clientDist));
-  app.get('*', (_req, res) => {
-    res.sendFile(path.join(clientDist, 'index.html'));
-  });
-}
 
 app.use(errorHandler);
 

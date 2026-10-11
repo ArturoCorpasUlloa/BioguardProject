@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlserver"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -247,12 +247,12 @@ model Maintenance {
   technicianId         Int?   @map("technician_id")
   responsible           String?
   company              String?
-  description          String?   @db.NVarChar(Max)
-  workPerformed        String?   @db.NVarChar(Max) @map("work_performed")
-  spareParts           String?   @db.NVarChar(Max) @map("spare_parts")
+  description          String?
+  workPerformed        String?   @map("work_performed")
+  spareParts           String?   @map("spare_parts")
   cost                 Float?
   nextMaintenanceDate  DateTime? @map("next_maintenance_date")
-  observations         String?   @db.NVarChar(Max)
+  observations         String?
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
 
@@ -388,8 +388,8 @@ model AuditLog {
   action    String
   entity    String
   entityId  Int?  @map("entity_id")
-  oldData   String?  @db.NVarChar(Max) @map("old_data")
-  newData   String?  @db.NVarChar(Max) @map("new_data")
+  oldData   String?  @map("old_data")
+  newData   String?  @map("new_data")
   ipAddress String?  @map("ip_address")
   createdAt DateTime @default(now()) @map("created_at")
 

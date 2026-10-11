@@ -1,27 +1,24 @@
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 function getToken() {
   return localStorage.getItem('bioguard_token');
 }
 
+function authHeaders() {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export async function api(path, options = {}) {
   const headers = {
+    ...authHeaders(),
     ...(options.headers || {}),
   };
   if (!(options.body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
   }
 
-  const token = getToken();
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-  });
-
+  const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Error de red' }));
     const detail = Array.isArray(error.details)
@@ -31,44 +28,34 @@ export async function api(path, options = {}) {
     exception.details = error.details;
     throw exception;
   }
-
-  if (response.status === 204) {
-    return null;
-  }
-
+  if (response.status === 204) return null;
   return response.json();
 }
 
-export async function downloadSqlExport() {
-  const token = getToken();
-  const response = await fetch(`${API_BASE}/export/sql`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
+async function downloadResponse(response, fileName, fallbackMessage) {
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'No se pudo exportar la base de datos' }));
-    throw new Error(error.error || 'No se pudo exportar la base de datos');
+    const error = await response.json().catch(() => ({ error: fallbackMessage }));
+    throw new Error(error.error || fallbackMessage);
   }
-
   const blob = await response.blob();
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `bioguard-export-${new Date().toISOString().slice(0, 10)}.sql`;
+  link.download = fileName;
   link.click();
   URL.revokeObjectURL(url);
 }
 
+export async function downloadSqlExport() {
+  const response = await fetch(`${API_BASE}/export/sql`, { headers: authHeaders() });
+  return downloadResponse(response, `bioguard-export-${new Date().toISOString().slice(0, 10)}.sql`, 'No se pudo exportar la base de datos');
+}
+
 export async function downloadEquipmentDocument(equipmentId, documentId, fileName) {
-  const token = getToken();
-  const response = await fetch(`/api/equipment/${equipmentId}/documents/${documentId}/download`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  const response = await fetch(`${API_BASE}/equipment/${equipmentId}/documents/${documentId}/download`, {
+    headers: authHeaders(),
   });
-  if (!response.ok) throw new Error('No se pudo descargar el documento');
-  const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url; link.download = fileName; link.click();
-  URL.revokeObjectURL(url);
+  return downloadResponse(response, fileName, 'No se pudo descargar el documento');
 }
 
 export const authApi = {
@@ -83,10 +70,7 @@ export const accessApi = {
     list: () => api('/admin/users'),
     create: (data) => api('/admin/users', { method: 'POST', body: JSON.stringify(data) }),
     update: (id, data) => api(`/admin/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    changePassword: (id, password) => api(`/admin/users/${id}/password`, {
-      method: 'PATCH',
-      body: JSON.stringify({ password }),
-    }),
+    changePassword: (id, password) => api(`/admin/users/${id}/password`, { method: 'PATCH', body: JSON.stringify({ password }) }),
     remove: (id) => api(`/admin/users/${id}`, { method: 'DELETE' }),
   },
   roles: {
@@ -98,9 +82,7 @@ export const accessApi = {
   permissions: () => api('/admin/permissions'),
 };
 
-export const dashboardApi = {
-  get: () => api('/dashboard'),
-};
+export const dashboardApi = { get: () => api('/dashboard') };
 
 export const areasApi = {
   list: () => api('/areas'),
@@ -127,26 +109,20 @@ export const equipmentApi = {
   },
   listDocuments: (id) => api(`/equipment/${id}/documents`),
   deleteDocument: (id, documentId) => api(`/equipment/${id}/documents/${documentId}`, { method: 'DELETE' }),
-  documentDownloadUrl: (id, documentId) => `/api/equipment/${id}/documents/${documentId}/download`,
+  documentDownloadUrl: (id, documentId) => `${API_BASE}/equipment/${id}/documents/${documentId}/download`,
   remove: (id) => api(`/equipment/${id}`, { method: 'DELETE' }),
 };
 
 export const operationsApi = {
   maintenance: {
-    list: (params = {}) => {
-      const query = new URLSearchParams(params).toString();
-      return api(`/maintenance${query ? `?${query}` : ''}`);
-    },
+    list: (params = {}) => { const query = new URLSearchParams(params).toString(); return api(`/maintenance${query ? `?${query}` : ''}`); },
     create: (data) => api('/maintenance', { method: 'POST', body: JSON.stringify(data) }),
     update: (id, data) => api(`/maintenance/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     remove: (id) => api(`/maintenance/${id}`, { method: 'DELETE' }),
     bulkCreate: (records) => api('/maintenance/bulk', { method: 'POST', body: JSON.stringify({ records }) }),
   },
   incidents: {
-    list: (params = {}) => {
-      const query = new URLSearchParams(params).toString();
-      return api(`/incidents${query ? `?${query}` : ''}`);
-    },
+    list: (params = {}) => { const query = new URLSearchParams(params).toString(); return api(`/incidents${query ? `?${query}` : ''}`); },
     create: (data) => api('/incidents', { method: 'POST', body: JSON.stringify(data) }),
     update: (id, data) => api(`/incidents/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     remove: (id) => api(`/incidents/${id}`, { method: 'DELETE' }),
@@ -176,10 +152,7 @@ export const operationsApi = {
     remove: (equipmentId) => api(`/dicom/${equipmentId}`, { method: 'DELETE' }),
   },
   schedule: {
-    list: (params = {}) => {
-      const query = new URLSearchParams(params).toString();
-      return api(`/schedule${query ? `?${query}` : ''}`);
-    },
+    list: (params = {}) => { const query = new URLSearchParams(params).toString(); return api(`/schedule${query ? `?${query}` : ''}`); },
     create: (data) => api('/schedule', { method: 'POST', body: JSON.stringify(data) }),
     remove: (id) => api(`/schedule/${id}`, { method: 'DELETE' }),
     update: (id, data) => api(`/schedule/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
